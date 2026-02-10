@@ -117,3 +117,4 @@ if __name__ == '__main__':
     application.run_polling()
 
 # https://github.com/python-telegram-bot/python-telegram-bot/wiki/Introduction-to-the-API
+# https://docs.python-telegram-bot.org/en/stable/
