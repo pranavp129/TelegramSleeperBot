@@ -23,21 +23,21 @@ def find_player_trades(transactions, player_id: str, week: int):
 
     return results
 
-def find_trades_for_player(transactions, player_id, start_week=1, end_week=18):
+def find_trades_for_player(get_transactions, player_id, start_week=1, end_week=18):
     """
-    Returns a list of all trades (with full transaction data) that involve the given player_id
-    over the specified week range.
+    get_transactions: a function that takes week -> returns that week's transactions
+    Returns all trades for a player across all weeks.
     """
     trades = []
     for week in range(start_week, end_week + 1):
-        txns = transactions(week)  # this should be a function that fetches the week's transactions
+        txns = get_transactions(week)
         for txn in txns:
             if txn.get("type") != "trade":
                 continue
             adds = txn.get("adds") or {}
             drops = txn.get("drops") or {}
             if player_id in adds or player_id in drops:
-                txn["week"] = week  # attach week info for convenience
+                txn["week"] = week
                 trades.append(txn)
     return trades
 
