@@ -7,7 +7,7 @@ from telegram.ext import InlineQueryHandler
 from uuid import uuid4
 from sleeper.client import SleeperClient
 from sleeper.trades import extract_trade_details, find_trades_for_player
-from sleeper.helpers import get_player_id
+from sleeper.helpers import get_player_id, resolve_pick_status
 from config.settings import OSU_DYNASTY_LEAGUE_ID
 
 client = SleeperClient(OSU_DYNASTY_LEAGUE_ID)
@@ -95,7 +95,7 @@ async def in_trade(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 if asset["type"] == "player":
                     msg_lines.append(f"- {asset['name']}")
                 elif asset["type"] == "pick":
-                    msg_lines.append(f"- {asset['season']} Round {asset['round']} Pick")
+                    msg_lines.append(f"{asset['season']} Round {asset['round']} Pick{resolve_pick_status(client, asset)}")
         msg_lines.append("---")
 
     await update.message.reply_text("\n".join(msg_lines))

@@ -74,7 +74,8 @@ def extract_trade_details(trade):
                 "type": "pick",
                 "round": pick["round"],
                 "season": pick["season"],
-                "from": pick["previous_owner_id"]
+                "original_pick_roster": pick["roster_id"],
+                "owner_id": pick["owner_id"],
             }
         )
 

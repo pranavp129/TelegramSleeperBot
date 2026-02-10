@@ -4,9 +4,12 @@ BASE_URL = "https://api.sleeper.app/v1"
 
 class SleeperClient:
     def __init__(self, league_id: str):
+        self.BASE_URL = "https://api.sleeper.app/v1"
         self.league_id = league_id
         self.session = requests.Session()
         self._roster_name_map_cache = {}  # {season: {roster_id: display_name}}
+        self._league_cache = None      # cache for previous leagues
+        self._draft_cache = None         # cache for drafts per league_id
 
     def get_league_info(self, league_id=None):
         league_id = league_id or self.league_id
@@ -46,29 +49,30 @@ class SleeperClient:
         """
         Walk back through previous leagues until there is no previous league.
         Returns a list of tuples: [(season, league_id), ...]
+        Caches results in self._league_cache.
         """
+        if self._league_cache:
+            return self._league_cache
+
         league_id = self.league_id
         seen = set()
         league_chain = []
 
         while league_id:
-            # Avoid infinite loop if something unexpected repeats
             if league_id in seen:
                 break
             seen.add(league_id)
 
             info = self.get_league_info(league_id)
             season = info.get("season", "Unknown")
-
             league_chain.append((season, league_id))
 
             prev = info.get("previous_league_id")
-            # Stop if previous league is falsy (None or empty string)
             if not prev:
                 break
-
             league_id = prev
 
+        self._league_cache = league_chain
         return league_chain
 
     def get_transactions(self, week: int, league_id=None):
@@ -77,3 +81,124 @@ class SleeperClient:
         r = self.session.get(url)
         r.raise_for_status()
         return r.json()
+    
+    def get_rosters(self, league_id=None):
+        league_id = league_id or self.league_id
+        url = f"{self.BASE_URL}/league/{league_id}/rosters"
+        r = self.session.get(url)
+        r.raise_for_status()
+        return r.json()
+    
+    def get_draft_picks(self, draft_id):
+        """Return picks JSON for a given draft_id."""
+        url = f"{BASE_URL}/draft/{draft_id}/picks"
+        r = self.session.get(url)
+        r.raise_for_status()
+        return r.json()
+
+
+    def get_drafts(self, league_id):
+        """Return drafts JSON for a given league_id."""
+        url = f"{BASE_URL}/league/{league_id}/drafts"
+        r = self.session.get(url)
+        r.raise_for_status()
+        return r.json()
+
+    def get_all_previous_draft_ids(self):
+        """
+        Returns dict: { season: draft_id }
+        """
+        if hasattr(self, "_draft_cache") and self._draft_cache:
+            return self._draft_cache
+
+        self._draft_cache = {}
+
+        # Ensure league cache exists
+        league_chain = self.get_all_previous_league_ids()
+
+        for season, league_id in league_chain:
+            drafts = self.get_drafts(league_id)
+            if not drafts:
+                continue
+
+            # Sleeper usually has exactly one draft per league
+            draft_id = drafts[0]["draft_id"]
+            self._draft_cache[season] = draft_id
+
+        return self._draft_cache
+    
+    def get_owner_id(self, season: str, roster_id: int):
+        """
+        Given a season and roster_id, return the associated owner_id.
+        Uses league_chain from get_all_previous_league_ids.
+        """
+        # Find the league_id for the given season
+        league_chain = self.get_all_previous_league_ids()
+        league_id = None
+        for s, l_id in league_chain:
+            if s == season:
+                league_id = l_id
+                break
+
+        if not league_id:
+            return None
+
+        # Fetch rosters for that league
+        rosters = self.get_rosters(league_id)
+
+        for roster in rosters:
+            if roster["roster_id"] == roster_id:
+                return roster["owner_id"]
+
+        raise ValueError(f"No owner found for roster_id {roster_id} in season {season}")
+    
+    def get_draft_position(self, season: str, owner_id: str) -> int:
+        """
+        Returns the draft slot for an owner in a given season.
+        """
+
+        league_chain = self.get_all_previous_league_ids()
+
+        league_id = next(
+            (lid for s, lid in league_chain if s == season),
+            None
+        )
+
+        if not league_id:
+            return 0
+
+        drafts = self.get_drafts(league_id)
+        if not drafts:
+            return 0
+
+        for draft in drafts:
+            draft_order = draft.get("draft_order")
+            if not draft_order:
+                continue
+
+            if owner_id in draft_order:
+                return draft_order[owner_id]
+
+        return 0
+
+
+
+client = SleeperClient('1182539202523172864')
+# 1️⃣ Warm caches
+league_chain = client.get_all_previous_league_ids()
+draft_chain = client.get_all_previous_draft_ids()
+o_id = client.get_owner_id("2025", 1)
+
+print("Leagues:", league_chain)
+print("Drafts:", draft_chain)
+print("o_id: ", o_id)
+
+# 2️⃣ Pick a known season + owner_id
+season = "2025"          # change if needed
+owner_id = "97574436634771456"           # must exist in that season
+
+try:
+    slot = client.get_draft_position(season, owner_id)
+    print(f"✅ Season {season} | Owner {owner_id} → Draft Slot {slot}")
+except Exception as e:
+    print(f"❌ Error: {e}")
