@@ -18,11 +18,7 @@ logging.basicConfig(
 )
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="I'm a clanker, please talk to me!")
-
-async def caps(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text_caps = ' '.join(context.args).upper()
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=text_caps)
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="I'm a Sleeper Bot. Enter @Super_CTE_Bot to see a list of commands!")
 
 async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Sorry, I didn't understand that command.")
@@ -41,18 +37,18 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
             input_message_content=InputTextMessageContent(query.upper())
         ),
         InlineQueryResultArticle(
-            id="inTrade",
-            title="In Trade",
-            description="Send a player full name to find all trades with that player",
+            id="trade_history",
+            title="Trade History",
+            description="Send a player's full name to find all trades with them involved. e.g. /TradeHistory Bryce Young",
             input_message_content=InputTextMessageContent(query.lower())
         ),
     ]
 
     await update.inline_query.answer(results)
 
-async def in_trade(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def trade_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
-        await update.message.reply_text("Provide a player name, e.g. /inTrade Garrett Wilson")
+        await update.message.reply_text("Provide a player name, e.g. /TradeHistory Garrett Wilson")
         return
 
     player_name = " ".join(context.args)
@@ -95,7 +91,7 @@ async def in_trade(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 if asset["type"] == "player":
                     msg_lines.append(f"- {asset['name']}")
                 elif asset["type"] == "pick":
-                    msg_lines.append(f"{asset['season']} Round {asset['round']} Pick{resolve_pick_status(client, asset)}")
+                    msg_lines.append(f"- {asset['season']} Round {asset['round']} Pick{resolve_pick_status(client, asset)}")
         msg_lines.append("---")
 
     await update.message.reply_text("\n".join(msg_lines))
@@ -109,15 +105,13 @@ if __name__ == '__main__':
     application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
     
     start_handler = CommandHandler('start', start)
-    caps_handler = CommandHandler('caps', caps)
     inline_caps_handler = InlineQueryHandler(inline_query)
-    inTrade_handler = CommandHandler('inTrade', in_trade)
+    trade_history_handler = CommandHandler('TradeHistory', trade_history)
     unknown_handler = MessageHandler(filters.COMMAND, unknown)
 
     application.add_handler(start_handler)
-    application.add_handler(caps_handler)
     application.add_handler(inline_caps_handler)
-    application.add_handler(inTrade_handler)
+    application.add_handler(trade_history_handler)
     application.add_handler(unknown_handler)
     
     application.run_polling()

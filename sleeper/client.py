@@ -180,25 +180,3 @@ class SleeperClient:
                 return draft_order[owner_id]
 
         return 0
-
-
-
-client = SleeperClient('1182539202523172864')
-# 1️⃣ Warm caches
-league_chain = client.get_all_previous_league_ids()
-draft_chain = client.get_all_previous_draft_ids()
-o_id = client.get_owner_id("2025", 1)
-
-print("Leagues:", league_chain)
-print("Drafts:", draft_chain)
-print("o_id: ", o_id)
-
-# 2️⃣ Pick a known season + owner_id
-season = "2025"          # change if needed
-owner_id = "97574436634771456"           # must exist in that season
-
-try:
-    slot = client.get_draft_position(season, owner_id)
-    print(f"✅ Season {season} | Owner {owner_id} → Draft Slot {slot}")
-except Exception as e:
-    print(f"❌ Error: {e}")
