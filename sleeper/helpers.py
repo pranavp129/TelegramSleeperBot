@@ -45,14 +45,12 @@ def resolve_pick_status(client, asset):
     # Safety fallback
     draft_slot = asset.get("draft_slot", 0)
     if draft_slot == 0:
-        print("draft slot is 0")
         return ""  # pick not yet made
 
     # Get draft_id for this season
     drafts_map = client.get_all_previous_draft_ids()
     draft_id = drafts_map.get(season)
     if not draft_id:
-        print("no draft_id")
         return ""  # no draft info available
 
     # Fetch picks from API
@@ -67,19 +65,16 @@ def resolve_pick_status(client, asset):
         None
     )
     if not pick_info:
-        print("no pick info found")
         return ""  # pick info not found
 
     actual_roster_id = pick_info["roster_id"]
 
     if actual_roster_id == owner_id:
-        print("made pick")
         # Pick made by the owner who acquired it
         player_id = pick_info.get("player_id")
         player_name = get_player_name(player_id) if player_id else ""
         return f" ({player_name})" if player_name else ""
     else:
         # Pick moved to someone else
-        print("traded pick")
         return " (Traded)"
 
