@@ -6,21 +6,38 @@ with open("data/players.json", "r") as f:
 
 def get_player_name(player_id):
     """
-    Returns full player name from Sleeper player_id.
+    Returns the display name for a player or defense.
     """
     player = PLAYERS.get(str(player_id))
-    if player:
-        return player.get("full_name", f"Unknown Player {player_id}")
-    return f"Unknown Player {player_id}"
+    if not player:
+        return f"Unknown Player {player_id}"
+
+    fantasy_positions = player.get("fantasy_positions") or []
+    if "DEF" in fantasy_positions:
+        last_name = player.get("last_name")
+        if last_name:
+            return f"{last_name} Defense"
+        return f"Unknown Player {player_id}"
+
+    return player.get("full_name", f"Unknown Player {player_id}")
+
 
 def get_player_id(player_name: str):
     """
-    Returns the Sleeper player_id for a given full_name.
-    Case-insensitive.
+    Returns the Sleeper player_id for a given name.
+    Works for normal players and defenses.
     """
+    name = player_name.lower().replace(" defense", "")
     for pid, pdata in PLAYERS.items():
-        if pdata.get("full_name", "").lower() == player_name.lower():
-            return pid
+        fantasy_positions = pdata.get("fantasy_positions") or []
+        if "DEF" in fantasy_positions:
+            # Match by last_name for defenses
+            if pdata.get("last_name", "").lower() == name:
+                return pid
+        else:
+            # Match by full_name for normal players
+            if pdata.get("full_name", "").lower() == name:
+                return pid
     return None
 
 def resolve_pick_status(client, asset):
@@ -77,48 +94,3 @@ def resolve_pick_status(client, asset):
     else:
         # Pick moved to someone else
         return " (Traded)"
-
-
-def get_player_name2(player_id):
-    """
-    Returns the display name for a player or defense.
-    """
-    player = PLAYERS.get(str(player_id))
-    if not player:
-        return f"Unknown Player {player_id}"
-
-    fantasy_positions = player.get("fantasy_positions") or []
-    if "DEF" in fantasy_positions:
-        last_name = player.get("last_name")
-        if last_name:
-            return f"{last_name} Defense"
-        return f"Unknown Player {player_id}"
-
-    return player.get("full_name", f"Unknown Player {player_id}")
-
-
-def get_player_id2(player_name: str):
-    """
-    Returns the Sleeper player_id for a given name.
-    Works for normal players and defenses.
-    """
-    name = player_name.lower().replace(" defense", "")
-    for pid, pdata in PLAYERS.items():
-        fantasy_positions = pdata.get("fantasy_positions") or []
-        if "DEF" in fantasy_positions:
-            # Match by last_name for defenses
-            if pdata.get("last_name", "").lower() == name:
-                return pid
-        else:
-            # Match by full_name for normal players
-            if pdata.get("full_name", "").lower() == name:
-                return pid
-    return None
-
-# Defense
-print(get_player_name2("CHI"))   # → "Bears Defense"
-print(get_player_id2("Bears"))   # → "CHI"
-
-# Normal player
-print(get_player_name2("4814")) 
-print(get_player_id2("Tom Brady"))
