@@ -5,21 +5,24 @@ with open("data/players.json", "r") as f:
     PLAYERS = json.load(f)
 
 def get_player_name(player_id):
-    """
-    Returns full player name from Sleeper player_id.
-    """
-    player = PLAYERS.get(str(player_id))
-    if player:
-        return player.get("full_name", f"Unknown Player {player_id}")
-    return f"Unknown Player {player_id}"
+    pid_str = str(player_id)
+    player = PLAYERS.get(pid_str)
+    if not player:
+        return f"Unknown Player {player_id}"
+
+    if player.get("fantasy_position") == "DEF":
+        return f"{player['last_name']} Defense"  # e.g., "Bears Defense"
+    
+    return player.get("full_name", f"Unknown Player {player_id}")
 
 def get_player_id(player_name: str):
-    """
-    Returns the Sleeper player_id for a given full_name.
-    Case-insensitive.
-    """
+    name_lower = player_name.lower().strip()
+    last_word = name_lower.split()[-1]  # "Bears" from "Chicago Bears"
+
     for pid, pdata in PLAYERS.items():
-        if pdata.get("full_name", "").lower() == player_name.lower():
+        if pdata.get("full_name", "").lower() == name_lower:
+            return pid
+        if pdata.get("fantasy_position") == "DEF" and pdata.get("last_name", "").lower() == last_word:
             return pid
     return None
 
