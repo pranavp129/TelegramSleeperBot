@@ -4,6 +4,7 @@ from telegram import Update
 from telegram.ext import filters, MessageHandler, ApplicationBuilder, CommandHandler, ContextTypes
 from telegram import InlineQueryResultArticle, InputTextMessageContent
 from telegram.ext import InlineQueryHandler
+from telegram.error import BadRequest
 from uuid import uuid4
 from sleeper.client import SleeperClient
 from sleeper.trades import extract_trade_details, find_trades_for_player
@@ -44,7 +45,11 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ),
     ]
 
-    await update.inline_query.answer(results)
+    try:
+        await update.inline_query.answer(results)
+    except BadRequest as e:
+        print(f"Ignored Telegram BadRequest: {e}")
+
 
 async def trade_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
